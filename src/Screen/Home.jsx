@@ -1,24 +1,38 @@
-import React, { useState } from 'react';
-import { useQuery } from '@apollo/client';
+import React, { useState, useEffect } from 'react';
+import { Cache, useQuery } from '@apollo/client';
 import { useMutation } from '@apollo/client';
 import { getMessages } from '../GraphQl/Queries/query';
 import { addMessagesMutation } from '../GraphQl/Mutation/mutation';
 const Home = () => {
-  let [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState('');
 
-  let { error, loading, data } = useQuery(getMessages);
-  let [addMessage] = useMutation(addMessagesMutation);
+  const {
+    error: getMessageError,
+    loading: getMessageLoading,
+    data,
+  } = useQuery(getMessages);
+  const [addMessage, loading, error] = useMutation(addMessagesMutation);
+
+  useEffect(() => {
+    setMessages(data?.messages);
+  }, [data]);
 
   // console.log(data?.messages, error, loading);
-  if (loading) return 'Loading...';
-  if (error) return `Error! ${error.message}`;
+  if (getMessageLoading) return 'Loading...';
+  if (getMessageError) return `Error! ${error.message}`;
 
   function Send() {
-    addMessage({ variables: { input: { text: message } } });
+    addMessage({ variables: { input: { text: message } } }).then(
+      ({ data: { addMessage } }) => {
+        setMessages([...messages, addMessage]);
+        setMessage('');
+      }
+    );
   }
   return (
     <div>
-      {data?.messages.map((item, index) => (
+      {messages?.map((item, index) => (
         <div key={index}>
           <p>Name : {item.from}</p>
           <p>
